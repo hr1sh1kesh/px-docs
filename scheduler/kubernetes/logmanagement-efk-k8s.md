@@ -88,9 +88,21 @@ data:
       read_from_head true
       keep_time_key true
     </source>
+
+    <source>
+      @type systemd
+      path /var/log/journal
+      filters [{ "_SYSTEMD_UNIT": "portworx.service" }]
+      pos_file /tmp/portworx-service.pos
+      tag journal.portworx
+      read_from_head true
+      strip_underscores true
+    </source>
+
     <filter kubernetes.**>
       type kubernetes_metadata
     </filter>
+
     <match portworx.**>
        type elasticsearch
        log_level info
@@ -101,12 +113,29 @@ data:
        port 9200
        logstash_format true
        buffer_chunk_limit 2M
-       buffer_queue_limit 32
-       flush_interval 60s  # flushes events ever minute. Can be configured as needed. 
+       buffer_queue_limit 256
+       flush_interval 30s  # flushes events ever minute. Can be configured as needed. 
        max_retry_wait 30 
        disable_retry_limit
        num_threads 8
     </match>
+    <match journal.portworx.**>
+       type elasticsearch
+       log_level info
+       include_tag_key true
+       logstash_prefix px-log ## Prefix for creating an Elastic search index. 
+       ## IP Address or hostname of the Elastic search client service. 
+       host 10.111.118.234
+       port 9200
+       logstash_format true
+       buffer_chunk_limit 2M
+       buffer_queue_limit 256
+       flush_interval 30s  # flushes events ever minute. Can be configured as needed. 
+       max_retry_wait 30 
+       disable_retry_limit
+       num_threads 8
+    </match>
+
 ---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
